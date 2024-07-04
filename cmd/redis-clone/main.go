@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/MalindaWMD/redis-from-scratch/internal"
 )
 
 func main() {
@@ -25,21 +27,21 @@ func main() {
 
 	// read from connection
 	for {
-		resp := NewReader(conn)
+		resp := internal.NewReader(conn)
 		value, err := resp.Read()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		writer := NewWriter(conn)
+		writer := internal.NewWriter(conn)
 
-		command := strings.ToUpper(value.array[0].bulk)
-		args := value.array[1:]
+		command := strings.ToUpper(value.Array[0].Bulk)
+		args := value.Array[1:]
 
-		handler, ok := Handlers[command]
+		handler, ok := internal.Handlers[command]
 		if !ok {
-			writer.Write(Value{typ: "error", str: "Invalid command: " + command})
+			writer.Write(internal.Value{Typ: "error", Str: "Invalid command: " + command})
 			continue
 		}
 
@@ -67,7 +69,7 @@ func main() {
 // 	reader.ReadByte()
 // 	reader.ReadByte()
 
-// 	// read the value into a byte array
+// 	// read the value into a byte Array
 // 	name := make([]byte, strSize)
 // 	reader.Read(name)
 
