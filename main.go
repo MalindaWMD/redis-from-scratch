@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -13,6 +14,17 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	aof, err := NewAof("database.aof")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer aof.Close()
+
+	aof.Read(func(value Value) {
+		handleCommand(value)
+	})
 
 	// start accepting requests
 	conn, err := l.Accept()
@@ -34,42 +46,36 @@ func main() {
 
 		writer := NewWriter(conn)
 
-		command := strings.ToUpper(value.array[0].bulk)
-		args := value.array[1:]
-
-		handler, ok := Handlers[command]
-		if !ok {
-			writer.Write(Value{typ: "error", str: "Invalid command: " + command})
+		res, err := handleCommand(value)
+		if err != nil {
+			writer.Write(Value{typ: "error", str: err.Error()})
 			continue
 		}
 
-		res := handler(args)
+		// Not good. Format
+		if strings.ToUpper(value.array[0].bulk) == "SET" {
+			aof.Write(value)
+		}
+
 		writer.Write(res)
 	}
 }
 
-// func read() {
-// 	input := "$5\r\nAhmed\r\n"
+func handleCommand(value Value) (Value, error) {
+	if len(value.array) == 0 {
+		return Value{}, nil
+	}
 
-// 	reader := bufio.NewReader(strings.NewReader(input))
+	command := strings.ToUpper(value.array[0].bulk)
+	args := value.array[1:]
 
-// 	b, _ := reader.ReadByte()
+	handler, ok := Handlers[command]
+	if !ok {
+		fmt.Println("Invalid command")
+		return Value{}, errors.New("invalid command: " + command)
+	}
 
-// 	if b != '$' {
-// 		fmt.Println("invalid type, expecting strings only")
-// 		os.Exit(1)
-// 	}
+	res := handler(args)
 
-// 	size, _ := reader.ReadByte()
-// 	strSize, _ := strconv.ParseInt(string(size), 10, 64)
-
-// 	// read \r\n
-// 	reader.ReadByte()
-// 	reader.ReadByte()
-
-// 	// read the value into a byte array
-// 	name := make([]byte, strSize)
-// 	reader.Read(name)
-
-// 	fmt.Println(string(name))
-// }
+	return res, nil
+}
