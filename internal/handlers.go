@@ -2,7 +2,6 @@ package internal
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 )
@@ -60,8 +59,6 @@ func get(args []Value) Value {
 	if !ok {
 		return Value{Typ: "null"}
 	}
-
-	fmt.Println("get:", value)
 
 	return Value{Typ: "bulk", Bulk: value}
 }
@@ -164,7 +161,6 @@ func HandleCommand(value Value) (Value, string, error) {
 
 	handler, ok := Handlers[command]
 	if !ok {
-		fmt.Println("Invalid command: " + command)
 		return Value{}, "", errors.New("Invalid command: " + command)
 	}
 

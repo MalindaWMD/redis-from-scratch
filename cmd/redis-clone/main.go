@@ -33,6 +33,7 @@ func main() {
 	defer aof.Close()
 
 	// read AOF
+	fmt.Println("Reading persisted data from AOF")
 	aof.Read(func(value internal.Value) {
 		internal.HandleCommand(value)
 	})
