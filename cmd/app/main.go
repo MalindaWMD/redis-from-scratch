@@ -25,7 +25,7 @@ func main() {
 	fmt.Println("Listening on port:6379")
 
 	// open AOF
-	aof, err := internal.NewAof("./internal/database.aof")
+	aof, err := internal.NewAof()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -34,7 +34,7 @@ func main() {
 
 	// read AOF
 	fmt.Println("Reading persisted data from AOF")
-	aof.Read(func(value internal.Value) {
+	go aof.Read(func(value internal.Value) {
 		internal.HandleCommand(value)
 	})
 
