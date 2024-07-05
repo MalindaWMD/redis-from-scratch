@@ -2,11 +2,22 @@
 
 This is experimental implementation of [Build Redis from scratch](https://www.build-redis-from-scratch.dev/en/introduction) series i've done for understand how Redis works under the hood.
 
-These commands are supported addition to the PING, SET, GET commands article series covers.
-- command 1
-- command 2
-- command 3
-- command 4
+Addition to the  features covered by the article,
 
-Also this supports timeouts when setting values.
+- this repo supports following commands
+    - HGETALL
+    - DEL
+    - EXPIRE
+    - TTL
 
+- TTL support. For new entries and existing entries.
+- AOF rewriting. If a certain file size is reached default AOF will be moved to a different file and the default one will be
+    re-created. When reading on startup, all the files will be read and handled in a goroutine.
+- Config file support, default configs are,
+```
+{
+    "aof_enabled": true,
+    "aof_dir": "./internal/data/",
+    "aof_max_size": 1024 // 1MB -> in bytes
+}
+```

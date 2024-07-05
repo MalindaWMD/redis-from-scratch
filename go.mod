@@ -1,3 +1,3 @@
-module example.com/redis-from-scratch
+module github.com/MalindaWMD/redis-from-scratch
 
 go 1.22.2
