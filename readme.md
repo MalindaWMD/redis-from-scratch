@@ -7,7 +7,9 @@ Addition to the  features covered by the article,
 - this repo supports following commands
     - HGETALL
     - DEL
+    - EXPIRE
+    - TTL
 
-- TTL support 
+- TTL support. For new entries and existing entries.
 - aof is rewritten if the configured size has reached. Size can be configured via a .conf file. 
     Only the latest values are transfered to the new file.
