@@ -2,7 +2,6 @@ package internal
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +21,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HGET":    hget,
 	"HGETALL": hgetAll,
 	"DEL":     del,
+	"EXPIRE":  expire,
 }
 
 var SETs = map[string]RedisEntry{}
@@ -74,8 +74,6 @@ func get(args []Value) Value {
 	if !ok {
 		return Value{Typ: "null"}
 	}
-
-	fmt.Println(time.Now(), value.expire)
 
 	if !value.expire.IsZero() && time.Now().After(value.expire) {
 		delete(SETs, key)
@@ -169,6 +167,28 @@ func del(args []Value) Value {
 		delete(SETs, key)
 		delete(HSETs, key)
 	}
+
+	return Value{Typ: "string", Str: "OK"}
+}
+
+func expire(args []Value) Value {
+	if len(args) != 2 {
+		return Value{Typ: "error", Str: "EXPIRE command requires 2 arguments."}
+	}
+
+	key := args[0].Bulk
+	ttl, _ := strconv.Atoi(args[1].Bulk)
+
+	SETsMu.Lock()
+	value, ok := SETs[key]
+	if !ok {
+		SETsMu.Unlock()
+		return Value{Typ: "null"}
+	}
+
+	value.expire = time.Now().Add(time.Duration(ttl) * time.Second)
+	SETs[key] = value
+	SETsMu.Unlock()
 
 	return Value{Typ: "string", Str: "OK"}
 }
