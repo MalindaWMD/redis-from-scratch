@@ -54,6 +54,7 @@ func (aof *Aof) Read(fn func(value Value)) error {
 		}
 
 		aof.readFile(file, fn)
+		file.Close()
 	}
 
 	return nil

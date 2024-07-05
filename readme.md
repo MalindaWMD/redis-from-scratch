@@ -11,5 +11,5 @@ Addition to the  features covered by the article,
     - TTL
 
 - TTL support. For new entries and existing entries.
-- aof is rewritten if the configured size has reached. Size can be configured via a .conf file. 
-    Only the latest values are transfered to the new file.
+- AOF rewriting. If a certain file size is reached default AOF will be moved to a different file and the default one will be
+    re-created. When reading on startup, all the files will be read and handled in a goroutine.
