@@ -24,8 +24,14 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Listening on port:6379")
 
+	config, err := internal.LoadConfig()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	// open AOF
-	aof, err := internal.NewAof()
+	aof, err := internal.NewAof(config)
 	if err != nil {
 		fmt.Println(err)
 		return

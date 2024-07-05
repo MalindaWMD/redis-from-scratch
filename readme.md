@@ -13,3 +13,11 @@ Addition to the  features covered by the article,
 - TTL support. For new entries and existing entries.
 - AOF rewriting. If a certain file size is reached default AOF will be moved to a different file and the default one will be
     re-created. When reading on startup, all the files will be read and handled in a goroutine.
+- Config file support, default configs are,
+```
+{
+    "aof_enabled": true,
+    "aof_dir": "./internal/data/",
+    "aof_max_size": 1024 // 1MB -> in bytes
+}
+```

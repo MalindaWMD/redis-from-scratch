@@ -9,23 +9,24 @@ import (
 )
 
 type Aof struct {
-	file *os.File
-	rd   *bufio.Reader
-	mu   sync.Mutex
+	file   *os.File
+	rd     *bufio.Reader
+	mu     sync.Mutex
+	config *Config
 }
 
-var defaultFilePath = "./internal/data/"
 var defaultFileName = "database.aof"
 
-func NewAof() (*Aof, error) {
-	f, err := os.OpenFile(defaultFilePath+defaultFileName, os.O_CREATE|os.O_RDWR, 0644)
+func NewAof(config Config) (*Aof, error) {
+	f, err := createDefaultFile(config)
 	if err != nil {
 		return nil, err
 	}
 
 	aof := &Aof{
-		file: f,
-		rd:   bufio.NewReader(f),
+		file:   f,
+		rd:     bufio.NewReader(f),
+		config: &config,
 	}
 
 	return aof, nil
@@ -40,7 +41,7 @@ func (aof *Aof) Read(fn func(value Value)) error {
 	aof.mu.Lock()
 	defer aof.mu.Unlock()
 
-	files, err := os.ReadDir(defaultFilePath)
+	files, err := os.ReadDir(aof.config.AOFDir)
 	if err != nil {
 		return err
 	}
@@ -48,7 +49,8 @@ func (aof *Aof) Read(fn func(value Value)) error {
 	fmt.Println(files)
 
 	for _, filename := range files {
-		file, err := os.OpenFile(defaultFilePath+filename.Name(), os.O_RDONLY, 0644)
+		path := getFilename(aof.config.AOFDir, filename.Name())
+		file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 		if err != nil {
 			return err
 		}
@@ -69,15 +71,18 @@ func (aof *Aof) Write(value Value) error {
 		return err
 	}
 
-	mb := int64(1 * 1000000) // 1mb in bytes
-	if fi.Size() >= mb {
-		fmt.Println("AOF chunk size exceeded. Writing to a new file...")
+	size := int64(aof.config.AOFMaxSize)
+	if fi.Size() >= size {
+		fmt.Printf("AOF chunk size of %d bytes exceeded. Writing to a new file...\n", size)
 
-		aof, err = aof.reCreate()
+		f, err := aof.reCreate()
 		if err != nil {
 			fmt.Println("Error re-creating AOF:", err)
 			return err
 		}
+
+		// assing newly created file
+		aof.file = f
 	}
 
 	_, err = aof.file.Write(value.Marshal())
@@ -96,30 +101,30 @@ func (aof *Aof) Close() error {
 	return aof.file.Close()
 }
 
-func (aof *Aof) reCreate() (*Aof, error) {
-	files, err := os.ReadDir(defaultFilePath)
+func (aof *Aof) reCreate() (*os.File, error) {
+	files, err := os.ReadDir(aof.config.AOFDir)
 	if err != nil {
 		fmt.Println(err)
-		return aof, err
+		return nil, err
 	}
 
 	// rename existing file to a numbered file
 	fmt.Println("Renaming old AOF.")
-	newFilename := fmt.Sprintf(defaultFilePath+"database-%d.aof", len(files))
-	err = os.Rename(aof.file.Name(), newFilename)
+	newFilename := fmt.Sprintf("database-%d.aof", len(files))
+	path := getFilename(aof.config.AOFDir, newFilename)
+	err = os.Rename(aof.file.Name(), path)
 	if err != nil {
 		fmt.Println("Rename error:", err)
-		return aof, err
+		return nil, err
 	}
 
 	// re-create aof with a new default file. Otherwise it will point to the renamed file.
-	aof, err = NewAof()
+	f, err := createDefaultFile(*aof.config)
 	if err != nil {
-		fmt.Println(err)
-		return aof, err
+		return nil, err
 	}
 
-	return aof, nil
+	return f, nil
 }
 
 func (aof *Aof) readFile(file *os.File, fn func(value Value)) error {
@@ -142,4 +147,13 @@ func (aof *Aof) readFile(file *os.File, fn func(value Value)) error {
 	}
 
 	return nil
+}
+
+func createDefaultFile(config Config) (*os.File, error) {
+	path := getFilename(config.AOFDir, defaultFileName)
+	return os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+}
+
+func getFilename(dir string, name string) string {
+	return dir + name
 }

@@ -1,0 +1,5 @@
+{
+    "aof_enabled": true,
+    "aof_dir": "./internal/data/",
+    "aof_max_size": 1024
+}
