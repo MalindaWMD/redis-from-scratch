@@ -178,6 +178,8 @@ func (v *Value) marshalBulk() []byte {
 	bytes = append(bytes, v.Bulk...)
 	bytes = append(bytes, '\r', '\n')
 
+	fmt.Println("bulk:", string(bytes))
+
 	return bytes
 }
 
@@ -189,9 +191,12 @@ func (v *Value) marshalArray() []byte {
 
 	for _, value := range v.Array {
 		bytes = append(bytes, value.Marshal()...)
+		fmt.Println("el: ", string(value.Marshal()))
 	}
 
 	bytes = append(bytes, '\r', '\n')
+
+	fmt.Println(string(bytes))
 
 	return bytes
 }

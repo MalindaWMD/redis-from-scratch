@@ -64,7 +64,9 @@ func main() {
 			continue
 		}
 
-		if command == "SET" {
+		fmt.Println("res:", res)
+
+		if command == "SET" || command == "HSET" {
 			aof.Write(value)
 		}
 
