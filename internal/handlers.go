@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"errors"
+	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -53,4 +56,23 @@ func get(args []Value) Value {
 	}
 
 	return Value{Typ: "bulk", Bulk: value}
+}
+
+func HandleCommand(value Value) (Value, string, error) {
+	if len(value.Array) == 0 {
+		return Value{}, "", nil
+	}
+
+	command := strings.ToUpper(value.Array[0].Bulk)
+	args := value.Array[1:]
+
+	handler, ok := Handlers[command]
+	if !ok {
+		fmt.Println("Invalid command: " + command)
+		return Value{}, "", errors.New("Invalid command: " + command)
+	}
+
+	res := handler(args)
+
+	return res, command, nil
 }

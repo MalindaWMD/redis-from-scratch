@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/MalindaWMD/redis-from-scratch/internal"
 )
@@ -25,6 +24,19 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Listening on port:6379")
 
+	// open AOF
+	aof, err := internal.NewAof("./internal/database.aof")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer aof.Close()
+
+	// read AOF
+	aof.Read(func(value internal.Value) {
+		internal.HandleCommand(value)
+	})
+
 	// read from connection
 	for {
 		resp := internal.NewReader(conn)
@@ -34,44 +46,28 @@ func main() {
 			return
 		}
 
-		writer := internal.NewWriter(conn)
-
-		command := strings.ToUpper(value.Array[0].Bulk)
-		args := value.Array[1:]
-
-		handler, ok := internal.Handlers[command]
-		if !ok {
-			writer.Write(internal.Value{Typ: "error", Str: "Invalid command: " + command})
+		if value.Typ != "array" {
+			fmt.Println("Invalid request, expected array")
 			continue
 		}
 
-		res := handler(args)
+		if len(value.Array) == 0 {
+			fmt.Println("Invalid request, expected array length > 0")
+			continue
+		}
+
+		writer := internal.NewWriter(conn)
+
+		res, command, err := internal.HandleCommand(value)
+		if err != nil {
+			writer.Write(internal.Value{Typ: "error", Str: err.Error()})
+			continue
+		}
+
+		if command == "SET" {
+			aof.Write(value)
+		}
+
 		writer.Write(res)
 	}
 }
-
-// func read() {
-// 	input := "$5\r\nAhmed\r\n"
-
-// 	reader := bufio.NewReader(strings.NewReader(input))
-
-// 	b, _ := reader.ReadByte()
-
-// 	if b != '$' {
-// 		fmt.Println("invalid type, expecting strings only")
-// 		os.Exit(1)
-// 	}
-
-// 	size, _ := reader.ReadByte()
-// 	strSize, _ := strconv.ParseInt(string(size), 10, 64)
-
-// 	// read \r\n
-// 	reader.ReadByte()
-// 	reader.ReadByte()
-
-// 	// read the value into a byte Array
-// 	name := make([]byte, strSize)
-// 	reader.Read(name)
-
-// 	fmt.Println(string(name))
-// }
