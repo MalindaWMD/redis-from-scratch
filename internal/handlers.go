@@ -2,9 +2,17 @@ package internal
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
+
+type RedisEntry struct {
+	value  string
+	expire time.Time // 0 -> indefinitely
+}
 
 var Handlers = map[string]func([]Value) Value{
 	"PING":    ping,
@@ -16,7 +24,7 @@ var Handlers = map[string]func([]Value) Value{
 	"DEL":     del,
 }
 
-var SETs = map[string]string{}
+var SETs = map[string]RedisEntry{}
 var SETsMu = sync.RWMutex{}
 
 var HSETs = map[string]map[string]string{}
@@ -31,16 +39,23 @@ func ping(args []Value) Value {
 }
 
 func set(args []Value) Value {
-	if len(args) != 2 {
-		return Value{Typ: "error", Str: "SET command requires 2 arguments. Key and value."}
+	if len(args) < 2 {
+		return Value{Typ: "error", Str: "SET command requires at least 2 arguments. Key and value."}
 	}
 
 	key := args[0].Bulk
 	value := args[1].Bulk
 
+	entry := RedisEntry{value: value}
+
+	if len(args) == 4 {
+		expire, _ := strconv.Atoi(args[3].Bulk)
+		entry.expire = time.Now().Add(time.Duration(expire) * time.Second)
+	}
+
 	// Here we nee to use a mutex to handle the concurrent requests.
 	SETsMu.Lock()
-	SETs[key] = value
+	SETs[key] = entry
 	SETsMu.Unlock()
 
 	return Value{Typ: "string", Str: "OK"}
@@ -60,7 +75,14 @@ func get(args []Value) Value {
 		return Value{Typ: "null"}
 	}
 
-	return Value{Typ: "bulk", Bulk: value}
+	fmt.Println(time.Now(), value.expire)
+
+	if !value.expire.IsZero() && time.Now().After(value.expire) {
+		delete(SETs, key)
+		return Value{Typ: "null"}
+	}
+
+	return Value{Typ: "bulk", Bulk: value.value}
 }
 
 func hset(args []Value) Value {
