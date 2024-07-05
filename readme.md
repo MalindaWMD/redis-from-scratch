@@ -6,6 +6,7 @@ Addition to the  features covered by the article,
 
 - this repo supports following commands
     - HGETALL
+    - DEL
 
 - TTL support 
 - aof is rewritten if the configured size has reached. Size can be configured via a .conf file. 
