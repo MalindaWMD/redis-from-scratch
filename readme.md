@@ -5,9 +5,7 @@ This is experimental implementation of [Build Redis from scratch](https://www.bu
 Addition to the  features covered by the article,
 
 - this repo supports following commands
-    - command 1 
-    - command 2
-    - command 3
+    - HGETALL
 
 - TTL support 
 - aof is rewritten if the configured size has reached. Size can be configured via a .conf file. 
