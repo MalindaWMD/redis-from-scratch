@@ -14,6 +14,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetAll,
+	"DEL":     del,
 }
 
 var SETs = map[string]string{}
@@ -59,6 +60,8 @@ func get(args []Value) Value {
 	if !ok {
 		return Value{Typ: "null"}
 	}
+
+	fmt.Println("get:", value)
 
 	return Value{Typ: "bulk", Bulk: value}
 }
@@ -113,7 +116,7 @@ func hget(args []Value) Value {
 
 func hgetAll(args []Value) Value {
 	if len(args) != 1 {
-		return Value{Typ: "error", Str: "HGET command requires 1 arguments."}
+		return Value{Typ: "error", Str: "HGETALL command requires 1 argument."}
 	}
 
 	hash := args[0].Bulk
@@ -134,6 +137,21 @@ func hgetAll(args []Value) Value {
 	}
 
 	return Value{Typ: "array", Array: valueSlice}
+}
+
+func del(args []Value) Value {
+	if len(args) != 1 {
+		return Value{Typ: "error", Str: "DEL command requires 1 argument."}
+	}
+
+	for i := 0; i < len(args); i++ {
+		key := args[i].Bulk
+
+		delete(SETs, key)
+		delete(HSETs, key)
+	}
+
+	return Value{Typ: "string", Str: "OK"}
 }
 
 func HandleCommand(value Value) (Value, string, error) {
