@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +23,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HGETALL": hgetAll,
 	"DEL":     del,
 	"EXPIRE":  expire,
+	"TTL":     ttl,
 }
 
 var SETs = map[string]RedisEntry{}
@@ -191,6 +193,27 @@ func expire(args []Value) Value {
 	SETsMu.Unlock()
 
 	return Value{Typ: "string", Str: "OK"}
+}
+
+func ttl(args []Value) Value {
+	if len(args) != 1 {
+		return Value{Typ: "error", Str: "TTL command requires 1 argument."}
+	}
+
+	key := args[0].Bulk
+
+	SETsMu.RLock()
+	value, ok := SETs[key]
+	SETsMu.RUnlock()
+
+	if !ok {
+		return Value{Typ: "null"}
+	}
+
+	seconds := time.Since(value.expire).Abs().Seconds()
+	remainingSeconds := int(math.Ceil(seconds))
+
+	return Value{Typ: "string", Str: strconv.Itoa(remainingSeconds)}
 }
 
 func HandleCommand(value Value) (Value, string, error) {
